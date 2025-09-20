@@ -3,192 +3,164 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class SpawnProjectilesScript : MonoBehaviour {
-
+public class SpawnProjectilesScript : MonoBehaviour
+{
 	public bool use2D;
 	public bool cameraShake;
 	public Text effectName;
 	public RotateToMouseScript rotateToMouse;
 	public GameObject firePoint;
-	public GameObject cameras;
-	public List<GameObject> VFXs = new List<GameObject> ();
+	public Camera mainCamera; // Use only one camera
+	public List<GameObject> VFXs = new List<GameObject>();
 
 	private int count = 0;
 	private float timeToFire = 0f;
 	private GameObject effectToSpawn;
-	private List<Camera> camerasList = new List<Camera> ();
-    private List<Camera> vfxCameras = new List<Camera>();
-    private Camera singleCamera;
 
-	void Start () {
-
-		if (cameras.transform.childCount > 0) {
-			for (int i = 0; i < cameras.transform.childCount; i++) {
-				camerasList.Add (cameras.transform.GetChild (i).gameObject.GetComponent<Camera> ());
-                vfxCameras.Add (camerasList[i].transform.GetChild(0).GetComponent<Camera>());
-            }
-			if(camerasList.Count == 0){
-				Debug.Log ("Please assign one or more Cameras in inspector");
+	void Start()
+	{
+		// Camera check
+		if (mainCamera == null)
+		{
+			mainCamera = Camera.main;
+			if (mainCamera == null)
+			{
+				Debug.LogError("Please assign a Camera in inspector");
+				return;
 			}
-		} else {
-			singleCamera = cameras.GetComponent<Camera> ();
-			if (singleCamera != null)
-				camerasList.Add (singleCamera);
-			else
-				Debug.Log ("Please assign one or more Cameras in inspector");
 		}
 
-		if(VFXs.Count>0)
+		// Setup first effect
+		if (VFXs.Count > 0)
 			effectToSpawn = VFXs[0];
 		else
-			Debug.Log ("Please assign one or more VFXs in inspector");
-		
-		if (effectName != null && VFXs.Count > 0)
-            effectName.text = effectToSpawn.name;
+			Debug.LogError("Please assign one or more VFXs in inspector");
 
-		if (camerasList.Count > 0) {
-			rotateToMouse.SetCamera (camerasList [camerasList.Count - 1]);
-			if(use2D)
-				rotateToMouse.Set2D (true);
-			rotateToMouse.StartUpdateRay ();
+		if (effectName != null && effectToSpawn != null)
+			effectName.text = effectToSpawn.name;
+
+		// Setup RotateToMouseScript
+		if (rotateToMouse != null)
+		{
+			rotateToMouse.SetCamera(mainCamera);
+			if (use2D)
+				rotateToMouse.Set2D(true);
+			rotateToMouse.StartUpdateRay();
 		}
 		else
-			Debug.Log ("Please assign one or more Cameras in inspector");
+		{
+			Debug.LogWarning("RotateToMouseScript is not assigned.");
+		}
 	}
 
-	void Update () {
-        if (VFXs.Count > 0)
-        {
-            if (Input.GetKey(KeyCode.Space) && Time.time >= timeToFire || Input.GetMouseButton(0) && Time.time >= timeToFire) {
-                timeToFire = Time.time + 1f / effectToSpawn.GetComponent<ProjectileMoveScript>().fireRate;
-                SpawnVFX();
-            }
+	void Update()
+	{
+		if (VFXs.Count > 0 && effectToSpawn != null)
+		{
+			// Fire with Space or Left Click
+			if ((Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)) && Time.time >= timeToFire)
+			{
+				timeToFire = Time.time + 1f / effectToSpawn.GetComponent<ProjectileMoveScript>().fireRate;
+				SpawnVFX();
+			}
 
-            if (Input.GetKeyDown(KeyCode.D))
-                Next();
-            if (Input.GetKeyDown(KeyCode.A))
-                Previous();
-        }
+			if (Input.GetKeyDown(KeyCode.D))
+				Next();
+			if (Input.GetKeyDown(KeyCode.A))
+				Previous();
+		}
 
-		if (Input.GetKeyDown (KeyCode.C))
-			SwitchCamera ();	
-		if (Input.GetKeyDown (KeyCode.Alpha1))
-			CameraShake ();
-		if (Input.GetKeyDown (KeyCode.X))
-			ZoomIn ();
-		if (Input.GetKeyDown (KeyCode.Z))
-			ZoomOut ();
+		if (Input.GetKeyDown(KeyCode.Alpha1))
+			ToggleCameraShake();
+		if (Input.GetKeyDown(KeyCode.X))
+			ZoomIn();
+		if (Input.GetKeyDown(KeyCode.Z))
+			ZoomOut();
 	}
 
-	public void SpawnVFX () {
+	public void SpawnVFX()
+	{
 		GameObject vfx;
 
-		var cameraShakeScript = cameras.GetComponent<CameraShakeSimpleScript> ();
-
+		var cameraShakeScript = mainCamera.GetComponent<CameraShakeSimpleScript>();
 		if (cameraShake && cameraShakeScript != null)
-			cameraShakeScript.ShakeCamera ();
+			cameraShakeScript.ShakeCamera();
 
-		if (firePoint != null) {
-			vfx = Instantiate (effectToSpawn, firePoint.transform.position, Quaternion.identity);
-			if(rotateToMouse != null){
-				vfx.transform.localRotation = rotateToMouse.GetRotation ();
-			} 
-			else Debug.Log ("No RotateToMouseScript found on firePoint.");
+		if (firePoint != null)
+		{
+			vfx = Instantiate(effectToSpawn, firePoint.transform.position, Quaternion.identity);
+			if (rotateToMouse != null)
+				vfx.transform.localRotation = rotateToMouse.GetRotation();
 		}
 		else
-			vfx = Instantiate (effectToSpawn);
-
-		var ps = vfx.GetComponent<ParticleSystem> ();
-
-		if (vfx.transform.childCount > 0) {
-			ps = vfx.transform.GetChild (0).GetComponent<ParticleSystem> ();
+		{
+			vfx = Instantiate(effectToSpawn);
 		}
+
+		// Ensure particle system plays
+		var ps = vfx.GetComponent<ParticleSystem>();
+		if (vfx.transform.childCount > 0 && ps == null)
+			ps = vfx.transform.GetChild(0).GetComponent<ParticleSystem>();
+
+		if (ps != null) ps.Play();
 	}
 
-	public void Next () {
+	public void Next()
+	{
 		count++;
-
-		if (count > VFXs.Count)
+		if (count >= VFXs.Count)
 			count = 0;
 
-		for(int i = 0; i < VFXs.Count; i++){
-			if (count == i)	effectToSpawn = VFXs [i];
-			if (effectName != null)	effectName.text = effectToSpawn.name;
-		}
+		effectToSpawn = VFXs[count];
+		if (effectName != null)
+			effectName.text = effectToSpawn.name;
 	}
 
-	public void Previous () {
+	public void Previous()
+	{
 		count--;
-
 		if (count < 0)
-			count = VFXs.Count;
+			count = VFXs.Count - 1;
 
-		for (int i = 0; i < VFXs.Count; i++) {
-			if (count == i) effectToSpawn = VFXs [i];
-			if (effectName != null)	effectName.text = effectToSpawn.name;
-		}
+		effectToSpawn = VFXs[count];
+		if (effectName != null)
+			effectName.text = effectToSpawn.name;
 	}
 
-	public void CameraShake () {
+	public void ToggleCameraShake()
+	{
 		cameraShake = !cameraShake;
 	}
 
-	public void ZoomIn () {
-		if (camerasList.Count > 0) {
-			if (!camerasList [0].orthographic) {
-				if (camerasList [0].fieldOfView < 101) {
-					for (int i = 0; i < camerasList.Count; i++) {
-						camerasList [i].fieldOfView += 5;
-                        vfxCameras [i].fieldOfView += 5;
-                    }
-				}
-			} else {
-				if (camerasList [0].orthographicSize < 10) {
-					for (int i = 0; i < camerasList.Count; i++) {
-						camerasList [i].orthographicSize += 0.5f;
-                        vfxCameras[i].fieldOfView += 0.5f;
-                    }
-				}
-			}
+	public void ZoomIn()
+	{
+		if (mainCamera == null) return;
+
+		if (!mainCamera.orthographic)
+		{
+			if (mainCamera.fieldOfView > 20)
+				mainCamera.fieldOfView -= 5;
+		}
+		else
+		{
+			if (mainCamera.orthographicSize > 1)
+				mainCamera.orthographicSize -= 0.5f;
 		}
 	}
 
-	public void ZoomOut () {
-		if (camerasList.Count > 0) {
-			if (!camerasList [0].orthographic) {
-				if (camerasList [0].fieldOfView > 20) {
-					for (int i = 0; i < camerasList.Count; i++) {
-						camerasList [i].fieldOfView -= 5;
-                        vfxCameras[i].fieldOfView -= 5;
-                    }
-				}
-			} else {
-				if (camerasList [0].orthographicSize > 4) {
-					for (int i = 0; i < camerasList.Count; i++) {
-						camerasList [i].orthographicSize -= 0.5f;
-                        vfxCameras[i].fieldOfView -= 0.5f;
-                    }
-				}
-			}
-		}
-	}
+	public void ZoomOut()
+	{
+		if (mainCamera == null) return;
 
-	public void SwitchCamera () {
-		if (camerasList.Count > 0) {
-			for (int i = 0; i < camerasList.Count; i++) {
-				if (camerasList [i].gameObject.activeSelf) {
-					camerasList [i].gameObject.SetActive (false);
-					if ((i + 1) == camerasList.Count) {
-						camerasList [0].gameObject.SetActive (true);
-						rotateToMouse.SetCamera (camerasList [0]);
-						break;
-					} else {
-						camerasList [i + 1].gameObject.SetActive (true);
-						rotateToMouse.SetCamera (camerasList [i + 1]);
-						break;
-					}
-				}
-			}
+		if (!mainCamera.orthographic)
+		{
+			if (mainCamera.fieldOfView < 100)
+				mainCamera.fieldOfView += 5;
+		}
+		else
+		{
+			if (mainCamera.orthographicSize < 10)
+				mainCamera.orthographicSize += 0.5f;
 		}
 	}
 }

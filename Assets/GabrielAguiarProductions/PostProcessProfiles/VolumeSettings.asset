@@ -12,12 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d7fd9488000d3734a9e00ee676215985, type: 3}
   m_Name: VolumeSettings
   m_EditorClassIdentifier: 
-  components:
-  - {fileID: 114527594671542966}
-  - {fileID: 114339849572665496}
-  - {fileID: 114914201461855468}
-  - {fileID: 114698408567805600}
-  - {fileID: 617365763601477730}
+  components: []
 --- !u!114 &114339849572665496
 MonoBehaviour:
   m_ObjectHideFlags: 0
