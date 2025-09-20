@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Beam01_Add
-  m_Shader: {fileID: -6465566751694194690, guid: 9b3b1d39a110a4668923fa7cc0e3d3c8,
+  m_Name: Beam01_AB
+  m_Shader: {fileID: -6465566751694194690, guid: cdaa03688d6bc4b0d93f299d3fbfd773,
     type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -45,7 +45,7 @@ Material:
     - _QueueControl: 0
     - _QueueOffset: 0
     m_Colors:
-    - _Color: {r: 47.93726, g: 47.93726, b: 47.93726, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
 --- !u!114 &6350631646876939201
 MonoBehaviour:
